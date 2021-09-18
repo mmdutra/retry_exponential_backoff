@@ -7,12 +7,12 @@ namespace Mmdutra\RetryPolicyPhp;
 class Client
 {
     private int $retries;
-    private int $multiplier;
+    private int $timeout;
 
     public function __construct()
     {
         $this->retries = 0;
-        $this->multiplier = 0;
+        $this->timeout = 0;
     }
 
     public function retry(
@@ -26,56 +26,69 @@ class Client
 
     public function retryWithExponentialBackoff(
         int $retries,
-        int $multiplier
+        int $timeout
     ): self
     {
         $this->retries = $retries;
-        $this->multiplier = $multiplier;
+        $this->timeout = $timeout;
 
         return $this;
     }
 
-    public function get(
-       string $uri
+    public function sendRequest(
+        string $method,
+        string $uri,
+        array $body = []
     ): array
     {
-        $timeout = 0;
-        for ($i = 1; $i <= $this->retries; $i++) {
-            try {
-                echo "Tentando pela {$i}º vez\n";
-                return $this->sendRequest($uri);
-            } catch (\Exception $exception) {
-                if ($this->multiplier) {
-                    $timeout = $i * $this->multiplier;
-                    if ($i == $this->retries) {
-                        echo "Nâo deu mesmo, parcero\n";
-                        return [];
-                    }
-
-                    sleep($timeout);
-                }
-                continue;
-            }
+        if ($this->retries > 0) {
+            return $this->makeRequestWithRetries($method, $uri, $body);
         }
 
-        return $this->sendRequest($uri);
+        return $this->makeRequest($method, $uri, $body);
     }
 
-    public function sendRequest(
-        string $uri
+    public function makeRequest(
+        string $method,
+        string $uri,
+        array $body
     )
     {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_URL, $uri);
-        $result = curl_exec($ch);
-        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $curlHandler = curl_init();
+        curl_setopt($curlHandler, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($curlHandler, CURLOPT_URL, $uri);
+        curl_setopt($curlHandler, CURLOPT_RETURNTRANSFER, true);
+
+        if (!empty($body)) {
+            curl_setopt($curlHandler, CURLOPT_POSTFIELDS, $body);
+        }
+
+        $result = curl_exec($curlHandler);
+        $statusCode = curl_getinfo($curlHandler, CURLINFO_HTTP_CODE);
+        curl_close($curlHandler);
 
         if ($statusCode === 503) {
-            throw new \Exception();
+            throw new BadResponseException();
         }
 
         return json_decode($result, true);
+    }
+
+    private function makeRequestWithRetries(string $method, string $uri, array $body)
+    {
+        for ($i = 0; $i < $this->retries; $i++) {
+            try {
+                $executedRetries = $i + 1;
+                echo "Tentando pela {$executedRetries}º vez\n";
+                return $this->makeRequest($method, $uri, $body);
+            } catch (BadResponseException $exception) {
+                $timeout = $this->timeout * pow(2, $i);
+                if ($i != ($this->retries - 1)) {
+                    usleep($timeout * 1000);
+                }
+            }
+        }
+
+        throw new BadResponseException();
     }
 }
