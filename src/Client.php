@@ -8,7 +8,7 @@ class Client
 {
     private int $retries = 0;
     private int $timeout = 0;
-    private int $base = 2;
+    private int $multiplier = 2;
 
     public function retry(
         int $retries
@@ -21,11 +21,11 @@ class Client
 
     public function withExponentialBackoff(
         int $timeout,
-        int $base = 2
+        int $multiplier = 2
     ): self
     {
         $this->timeout = $timeout;
-        $this->base = $base;
+        $this->multiplier = $multiplier;
 
         return $this;
     }
@@ -78,7 +78,7 @@ class Client
                 return $this->makeRequest($method, $uri, $body);
             } catch (BadResponseException $exception) {
                 if ($i != ($this->retries - 1)) {
-                    $timeout = $this->timeout * pow($this->base, $i);
+                    $timeout = $this->timeout * pow($this->multiplier, $i);
                     echo "Timeout: {$timeout}ms\n";
                     usleep($timeout * 1000);
                 }
