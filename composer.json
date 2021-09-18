@@ -1,0 +1,20 @@
+{
+    "name": "mmdutra/retry_policy_php",
+    "description": "An implementation of 'retry with exponencial backoff' in PHP",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Mmdutra\\RetryPolicyPhp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Mateus Morais Dutra",
+            "email": "mmdutra14@gmail.com"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.3",
+        "ext-curl": "*"
+    }
+}
