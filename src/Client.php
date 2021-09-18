@@ -19,13 +19,11 @@ class Client
         return $this;
     }
 
-    public function retryWithExponentialBackoff(
-        int $retries,
+    public function withExponentialBackoff(
         int $timeout,
         int $base = 2
     ): self
     {
-        $this->retries = $retries;
         $this->timeout = $timeout;
         $this->base = $base;
 
