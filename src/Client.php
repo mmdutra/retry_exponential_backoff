@@ -79,6 +79,7 @@ class Client
             } catch (BadResponseException $exception) {
                 if ($i != ($this->retries - 1)) {
                     $timeout = $this->timeout * pow($this->base, $i);
+                    echo "Timeout: {$timeout}ms\n";
                     usleep($timeout * 1000);
                 }
             }
