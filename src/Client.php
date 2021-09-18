@@ -6,14 +6,9 @@ namespace Mmdutra\RetryPolicyPhp;
 
 class Client
 {
-    private int $retries;
-    private int $timeout;
-
-    public function __construct()
-    {
-        $this->retries = 0;
-        $this->timeout = 0;
-    }
+    private int $retries = 0;
+    private int $timeout = 0;
+    private int $base = 2;
 
     public function retry(
         int $retries
@@ -26,11 +21,13 @@ class Client
 
     public function retryWithExponentialBackoff(
         int $retries,
-        int $timeout
+        int $timeout,
+        int $base = 2
     ): self
     {
         $this->retries = $retries;
         $this->timeout = $timeout;
+        $this->base = $base;
 
         return $this;
     }
@@ -82,8 +79,8 @@ class Client
                 echo "Tentando pela {$executedRetries}º vez\n";
                 return $this->makeRequest($method, $uri, $body);
             } catch (BadResponseException $exception) {
-                $timeout = $this->timeout * pow(2, $i);
                 if ($i != ($this->retries - 1)) {
+                    $timeout = $this->timeout * pow($this->base, $i);
                     usleep($timeout * 1000);
                 }
             }
