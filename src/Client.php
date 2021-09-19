@@ -9,6 +9,7 @@ class Client
     private int $retries = 0;
     private int $timeout = 0;
     private int $multiplier = 2;
+    private bool $withJitter = false;
 
     public function retry(
         int $retries
@@ -26,6 +27,13 @@ class Client
     {
         $this->timeout = $timeout;
         $this->multiplier = $multiplier;
+
+        return $this;
+    }
+
+    public function withJitter(): self
+    {
+        $this->withJitter = true;
 
         return $this;
     }
@@ -78,13 +86,24 @@ class Client
                 return $this->makeRequest($method, $uri, $body);
             } catch (BadResponseException $exception) {
                 if ($i != ($this->retries - 1)) {
-                    $timeout = $this->timeout * pow($this->multiplier, $i);
+                    $timeout = $this->calculateTimeout($i);
                     echo "Timeout: {$timeout}ms\n";
                     usleep($timeout * 1000);
                 }
             }
         }
 
-        throw new BadResponseException();
+        return [];
+    }
+
+    private function calculateTimeout(int $retryNumber): int
+    {
+        $exponentialBackoff = $this->timeout * pow($this->multiplier, $retryNumber);
+
+        if ($this->withJitter) {
+            return $exponentialBackoff / 2 + rand($this->timeout, $exponentialBackoff / 2);
+        }
+
+        return $exponentialBackoff;
     }
 }
