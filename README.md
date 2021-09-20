@@ -7,7 +7,7 @@ php -S 0.0.0.0:8000 server.php
 
 Exponential backoff 
 
-When we need to do the next retry, we increase the wait time to do the request. The function, as describe the name of the practice, is exponential, following this function: 
+When we need to do the next retry, we'he to increase the wait time to do the request, following this function: 
 
 ```
 T(n) = base * pow(multiplier, n)
